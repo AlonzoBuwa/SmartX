@@ -1,0 +1,875 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart-X IoT Gateway</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+        header {
+            background: #172554;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            header h1 {
+                font-size: 26px;
+            }
+
+            header span {
+                font-size: 14px;
+                opacity: 0.8;
+            }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 25px;
+        }
+
+        .pillars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pillar {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+
+            .pillar.active {
+                border-left: 5px solid #16a34a;
+            }
+
+            .pillar.disabled {
+                border-left: 5px solid #9ca3af;
+                opacity: 0.65;
+            }
+
+            .pillar h3 {
+                margin-bottom: 10px;
+            }
+
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .active-status {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .disabled-status {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+            .card h2 {
+                margin-bottom: 20px;
+                color: #172554;
+            }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat {
+            padding: 20px;
+            border-radius: 10px;
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 30px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .green {
+            color: #16a34a;
+        }
+
+        .red {
+            color: #dc2626;
+        }
+
+        .orange {
+            color: #ea580c;
+        }
+
+        form {
+            display: grid;
+            gap: 12px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #d1d5db;
+            border-radius: 7px;
+        }
+
+        button {
+            padding: 11px 16px;
+            border: none;
+            border-radius: 7px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+            button:hover {
+                background: #1d4ed8;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        .online {
+            color: #16a34a;
+            font-weight: bold;
+        }
+
+        .offline {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #fff7ed;
+            border-left: 4px solid #f97316;
+        }
+
+        .critical {
+            background: #fef2f2;
+            border-left-color: #dc2626;
+        }
+
+        .success {
+            padding: 12px;
+            margin-top: 10px;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 7px;
+            display: none;
+        }
+
+        .chart {
+            height: 220px;
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+        }
+
+        .bar {
+            flex: 1;
+            background: #3b82f6;
+            border-radius: 4px 4px 0 0;
+            min-height: 5px;
+            transition: height 0.5s;
+        }
+
+        .file-box {
+            border: 2px dashed #cbd5e1;
+            padding: 25px;
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 900px) {
+            .pillars,
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <h1>⚡ Smart-X</h1>
+            <span>Data Ingestion & Validation Gateway</span>
+        </div>
+
+        <div>
+            API Status:
+            <strong id="apiStatus">Checking...</strong>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- ARCHITECTURAL PILLARS -->
+
+        <div class="pillars">
+
+            <div class="pillar active">
+                <h3>📡 Sensor Data Ingestion</h3>
+                <p>Receive, validate and monitor sensor telemetry.</p>
+                <span class="status active-status">ACTIVE - PART 1</span>
+            </div>
+
+            <div class="pillar disabled">
+                <h3>⚡ Command Stream & History</h3>
+                <p>Real-time command management and history.</p>
+                <span class="status disabled-status">COMING IN PART 2</span>
+            </div>
+
+            <div class="pillar disabled">
+                <h3>🌐 Network Topology & Mesh</h3>
+                <p>Network routing and mesh visualisation.</p>
+                <span class="status disabled-status">FINAL POE</span>
+            </div>
+
+        </div>
+
+        <!-- STATISTICS -->
+
+        <div class="card">
+
+            <h2>System Overview</h2>
+
+            <div class="stats">
+
+                <div class="stat">
+                    <div>Total Sensors</div>
+                    <div class="stat-number" id="totalSensors">0</div>
+                </div>
+
+                <div class="stat">
+                    <div>Online</div>
+                    <div class="stat-number green" id="onlineSensors">0</div>
+                </div>
+
+                <div class="stat">
+                    <div>Offline</div>
+                    <div class="stat-number red" id="offlineSensors">0</div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="dashboard-grid">
+
+            <div>
+
+                <!-- TELEMETRY -->
+
+                <div class="card">
+
+                    <h2>📊 Live Telemetry</h2>
+
+                    <div id="telemetryChart" class="chart"></div>
+
+                    <p style="margin-top:15px;">
+                        Latest Reading:
+                        <strong id="latestValue">Waiting for telemetry...</strong>
+                    </p>
+
+                </div>
+
+                <!-- SENSOR TABLE -->
+
+                <div class="card">
+
+                    <h2>📡 Registered Sensors</h2>
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>Sensor ID</th>
+                                <th>Location</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="sensorTable">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+            <div>
+
+                <!-- ALERTS -->
+
+                <div class="card">
+
+                    <h2>🚨 Alerts</h2>
+
+                    <div id="alerts">
+
+                        <div class="alert">
+                            <strong>System Ready</strong>
+                            <br>
+                            Waiting for telemetry data.
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- SENSOR REGISTRATION -->
+
+                <div class="card">
+
+                    <h2>➕ Register Sensor</h2>
+
+                    <form id="sensorForm">
+
+                        <input id="sensorId"
+                               placeholder="Device MAC / Unique ID"
+                               required>
+
+                        <input id="location"
+                               placeholder="Sensor Location"
+                               required>
+
+                        <select id="category">
+
+                            <option value="Environmental">
+                                Environmental
+                            </option>
+
+                            <option value="Power Consumption">
+                                Power Consumption
+                            </option>
+
+                            <option value="Actuator">
+                                Actuator
+                            </option>
+
+                        </select>
+
+                        <button type="submit">
+                            Register Sensor
+                        </button>
+
+                    </form>
+
+                    <div id="sensorMessage" class="success"></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- FILE UPLOAD -->
+
+        <div class="card">
+
+            <h2>📁 Configuration & Log Attachments</h2>
+
+            <div class="file-box">
+
+                <p>Select the sensor profile for the attachment.</p>
+
+                <br>
+
+                <select id="uploadSensor">
+                    <option value="">Select Sensor</option>
+                </select>
+
+                <br><br>
+
+                <p>
+                    Select a configuration file, deployment photo
+                    or hardware log.
+                </p>
+
+                <br>
+
+                <input type="file"
+                       id="fileInput">
+
+                <br><br>
+
+                <button onclick="uploadFile()">
+                    Attach File
+                </button>
+
+                <div id="fileMessage" class="success"></div>
+
+            </div>
+
+    <script>
+
+const API_URL = "https://localhost:7178/api";
+
+let telemetryValues = [];
+
+
+// CHECK API
+
+async function checkAPI() {
+
+    try {
+
+        const response =
+            await fetch(`${API_URL}/Sensors`);
+
+        if (response.ok) {
+
+            document.getElementById("apiStatus").textContent =
+                "Online";
+
+            document.getElementById("apiStatus").className =
+                "green";
+
+        }
+
+        loadSensors();
+
+    }
+    catch (error) {
+
+        document.getElementById("apiStatus").textContent =
+            "Offline";
+
+        document.getElementById("apiStatus").className =
+            "red";
+
+    }
+
+}
+
+
+// LOAD SENSORS
+
+async function loadSensors() {
+
+    try {
+
+        const response =
+            await fetch(`${API_URL}/Sensors`);
+
+        const sensors = await response.json();
+        const offlineSensors = sensors.filter(
+            sensor => !sensor.isOnline
+        );
+
+        if (offlineSensors.length > 0) {
+
+            const alerts = document.getElementById("alerts");
+
+            alerts.innerHTML = offlineSensors.map(sensor => `
+        <div class="alert critical">
+
+            <strong>🔴 SENSOR DISCONNECTED</strong>
+
+            <br><br>
+
+            Sensor:
+            ${sensor.sensorId}
+
+            <br>
+
+            Location:
+            ${sensor.location}
+
+            <br>
+
+            Last seen:
+            ${new Date(sensor.lastSeen).toLocaleTimeString()}
+
+        </div>
+    `).join("");
+        }
+
+        document.getElementById("totalSensors").textContent =
+            sensors.length;
+
+        const online =
+            sensors.filter(s => s.isOnline).length;
+
+        document.getElementById("onlineSensors").textContent =
+            online;
+
+        document.getElementById("offlineSensors").textContent =
+            sensors.length - online;
+
+        const table =
+            document.getElementById("sensorTable");
+
+        table.innerHTML = "";
+        const uploadSensor =
+            document.getElementById("uploadSensor");
+
+        uploadSensor.innerHTML =
+            '<option value="">Select Sensor</option>';
+
+        sensors.forEach(sensor => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = sensor.sensorId;
+
+            option.textContent =
+                `${sensor.sensorId} - ${sensor.location}`;
+
+            uploadSensor.appendChild(option);
+        });
+
+        sensors.forEach(sensor => {
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${sensor.sensorId}</td>
+                <td>${sensor.location}</td>
+                <td>${sensor.category}</td>
+                <td class="${sensor.isOnline ? "online" : "offline"}">
+                    ${sensor.isOnline ? "● Online" : "● Offline"}
+                </td>
+            `;
+
+            table.appendChild(row);
+
+        });
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+// REGISTER SENSOR
+
+document.getElementById("sensorForm")
+    .addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const sensor = {
+
+        sensorId:
+            document.getElementById("sensorId").value,
+
+        location:
+            document.getElementById("location").value,
+
+        category:
+            document.getElementById("category").value,
+
+        isOnline: true
+
+    };
+
+    try {
+
+        const response =
+            await fetch(`${API_URL}/Sensors`, {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(sensor)
+
+            });
+
+        const result =
+            await response.json();
+
+        const message =
+            document.getElementById("sensorMessage");
+
+        message.style.display = "block";
+
+        message.textContent =
+            result.message || "Sensor registered.";
+
+        document.getElementById("sensorForm").reset();
+
+        loadSensors();
+
+    }
+    catch (error) {
+
+        alert("Could not register sensor.");
+
+    }
+
+});
+
+
+// LOAD TELEMETRY
+
+async function loadTelemetry() {
+
+    try {
+
+        const response =
+            await fetch(`${API_URL}/Telemetry`);
+
+        const data =
+            await response.json();
+
+        telemetryValues = data
+            .map(item => Number(item.value))
+            .filter(value => !isNaN(value))
+            .slice(-20);
+
+        drawChart();
+
+        if (data.length > 0) {
+
+            const latest =
+                data[data.length - 1];
+
+            document.getElementById("latestValue")
+                .textContent =
+                `${latest.value} — ${latest.sensorId}`;
+
+            detectAnomaly(latest);
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+// DRAW TELEMETRY CHART
+
+function drawChart() {
+
+    const chart =
+        document.getElementById("telemetryChart");
+
+    chart.innerHTML = "";
+
+    if (telemetryValues.length === 0)
+        return;
+
+    const max =
+        Math.max(...telemetryValues, 1);
+
+    telemetryValues.forEach(value => {
+
+        const bar =
+            document.createElement("div");
+
+        bar.className = "bar";
+
+        bar.style.height =
+            `${Math.max((value / max) * 180, 5)}px`;
+
+        chart.appendChild(bar);
+
+    });
+
+}
+
+
+// ANOMALY DETECTION
+
+function detectAnomaly(packet) {
+
+    const value =
+        Number(packet.value);
+
+    if (value > 40) {
+
+        const alerts =
+            document.getElementById("alerts");
+
+        alerts.innerHTML = `
+            <div class="alert critical">
+
+                <strong>⚠ ANOMALY DETECTED</strong>
+
+                <br><br>
+
+                Sensor:
+                ${packet.sensorId}
+
+                <br>
+
+                Value:
+                ${value}
+
+                <br>
+
+                The telemetry value is above the
+                expected threshold.
+
+            </div>
+        `;
+
+    }
+
+}
+
+
+// FILE UPLOAD
+
+        async function uploadFile() {
+
+            const file =
+                document.getElementById("fileInput").files[0];
+
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            const sensorsResponse =
+                await fetch(`${API_URL}/Sensors`);
+
+            const sensors =
+                await sensorsResponse.json();
+
+            if (sensors.length === 0) {
+                alert("Register a sensor before uploading a file.");
+                return;
+            }
+
+            const sensorId =
+                document.getElementById("uploadSensor").value;
+
+            if (!sensorId) {
+                alert("Please select a sensor.");
+                return;
+            }
+
+            const formData = new FormData();
+
+            formData.append("file", file);
+
+            try {
+
+                const response =
+                    await fetch(
+                        `${API_URL}/Sensors/${encodeURIComponent(sensorId)}/files`,
+                        {
+                            method: "POST",
+                            body: formData
+                        }
+                    );
+
+                const result =
+                    await response.json();
+
+                const message =
+                    document.getElementById("fileMessage");
+
+                message.style.display = "block";
+
+                message.textContent =
+                    result.message || "File uploaded successfully.";
+
+            }
+            catch (error) {
+
+                alert("File upload failed.");
+
+            }
+        }
+}
+
+
+// REFRESH DATA
+
+async function refreshDashboard() {
+
+    await loadSensors();
+
+    await loadTelemetry();
+
+}
+
+
+// START
+
+checkAPI();
+
+refreshDashboard();
+
+setInterval(refreshDashboard, 5000);
+
+    </script>
+
+</body>
+</html>
