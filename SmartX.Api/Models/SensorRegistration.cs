@@ -15,5 +15,13 @@
         public DateTime LastSeen { get; set; } = DateTime.UtcNow;
 
         public List<string> Attachments { get; set; } = new();
+
+        // ============================================================
+        // PART 2 - DEVICE COMMAND STATE
+        // ============================================================
+
+        // Represents the current operational state of the device.
+        // Commands such as ACTIVATE and DEACTIVATE update this value.
+        public string DeviceState { get; set; } = "OFF";
     }
 }
