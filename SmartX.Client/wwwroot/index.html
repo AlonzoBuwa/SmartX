@@ -502,6 +502,52 @@
                 color: #1e40af;
             }
 
+
+        /* ============================================================
+           NETWORK TOPOLOGY
+           ============================================================ */
+
+        .network-form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .network-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .network-result {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 9px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            overflow-wrap: anywhere;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+            .network-result pre {
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+                font-family: Consolas, monospace;
+            }
+
+        .network-card {
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 650px) {
+            .network-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* ============================================================
            RESPONSIVE
            ============================================================ */
@@ -572,9 +618,10 @@
             ⚡ Command Stream & History
         </button>
 
-        <button class="nav-button"
-                disabled>
-            🌐 Network Topology & Mesh 🔒
+        <button id="topologyNav"
+                class="nav-button"
+                onclick="navigateTo('topology')">
+            🌐 Network Topology & Mesh
         </button>
 
     </nav>
@@ -1098,6 +1145,117 @@
 
         </section>
 
+        <!-- ============================================================
+             PART 3 / NETWORK TOPOLOGY AND MESH ROUTING
+             ============================================================ -->
+
+        <section id="topologyView" class="view">
+
+            <div class="pillars">
+                <div class="pillar">
+                    <h3>📡 Sensor Data Ingestion</h3>
+                    <p>Telemetry ingestion and monitoring.</p>
+                    <span class="badge green">PART 1</span>
+                </div>
+                <div class="pillar part2">
+                    <h3>⚡ Command Stream & History</h3>
+                    <p>Device commands and command history.</p>
+                    <span class="badge blue">PART 2</span>
+                </div>
+                <div class="pillar active">
+                    <h3>🌐 Network Topology & Mesh</h3>
+                    <p>Network connectivity, graph traversal and energy-efficient routing.</p>
+                    <span class="badge green">NETWORK MODULE</span>
+                </div>
+            </div>
+
+            <h2 class="section-title">Network Topology Dashboard</h2>
+            <p class="section-subtitle">Manage mesh nodes, inspect connections and investigate network paths.</p>
+
+            <div class="stats-grid">
+                <div class="stat-card"><div class="label">Network Nodes</div><div id="networkNodeCount" class="value">0</div></div>
+                <div class="stat-card"><div class="label">Wireless Connections</div><div id="networkEdgeCount" class="value">0</div></div>
+                <div class="stat-card"><div class="label">Online Nodes</div><div id="networkOnlineCount" class="value">0</div></div>
+                <div class="stat-card"><div class="label">Offline Nodes</div><div id="networkOfflineCount" class="value">0</div></div>
+            </div>
+
+            <div class="card network-card">
+                <h3>➕ Register Network Node</h3>
+                <div class="network-form-grid">
+                    <input id="networkSensorId" placeholder="Sensor ID (e.g. ESP32-01)">
+                    <input id="networkMacAddress" placeholder="MAC address (e.g. AA:BB:CC:DD:EE:FF)">
+                    <input id="networkLocation" placeholder="Deployment location">
+                    <select id="networkDeviceType">
+                        <option value="ESP32">ESP32</option>
+                        <option value="Gateway">Gateway</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <button class="button button-primary" onclick="registerNetworkNode()">Register Node</button>
+            </div>
+
+            <div class="card network-card">
+                <h3>🔗 Create Wireless Connection</h3>
+                <div class="network-form-grid">
+                    <select id="connectionSource"><option value="">Select source node</option></select>
+                    <select id="connectionDestination"><option value="">Select destination node</option></select>
+                    <input id="connectionEnergy" type="number" min="0" step="0.01" placeholder="Energy cost">
+                </div>
+                <button class="button button-primary" onclick="createNetworkConnection()">Create Connection</button>
+            </div>
+
+            <div class="card network-card">
+                <h3>🖧 Registered Network Nodes</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Sensor ID</th><th>MAC Address</th><th>Location</th><th>Device Type</th><th>Status</th></tr></thead>
+                        <tbody id="networkNodesTable"><tr><td colspan="5" class="empty-state">Load network to view nodes.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card network-card">
+                <h3>🔗 Wireless Connections</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Source</th><th>Destination</th><th>Energy Cost</th><th>Status</th></tr></thead>
+                        <tbody id="networkConnectionsTable"><tr><td colspan="4" class="empty-state">No connections loaded.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card network-card">
+                <h3>🧠 Graph Algorithms</h3>
+                <p class="section-subtitle">Select a starting node to run graph traversal or calculate an energy-weighted spanning tree.</p>
+                <div class="network-form-grid">
+                    <select id="algorithmStartNode"><option value="">Select starting node</option></select>
+                </div>
+                <div class="network-actions">
+                    <button class="button button-primary" onclick="runNetworkAlgorithm('bfs')">Run BFS</button>
+                    <button class="button button-primary" onclick="runNetworkAlgorithm('dfs')">Run DFS</button>
+                    <button class="button button-secondary" onclick="runNetworkAlgorithm('disconnected')">Find Disconnected Nodes</button>
+                    <button class="button button-secondary" onclick="runNetworkAlgorithm('mst')">Calculate Prim's MST</button>
+                </div>
+                <div id="networkAlgorithmResults" class="network-result">Select an algorithm to investigate the network.</div>
+            </div>
+
+            <div class="card network-card">
+                <h3>📊 Historical Telemetry Search (AVL Tree)</h3>
+                <p class="section-subtitle">Retrieve readings by timestamp range and optionally filter by sensor.</p>
+                <div class="network-form-grid">
+                    <select id="historicalSensorId"><option value="">All Sensors</option></select>
+                    <input id="historicalStartTime" type="datetime-local">
+                    <input id="historicalEndTime" type="datetime-local">
+                </div>
+                <div class="network-actions">
+                    <button class="button button-primary" onclick="searchHistoricalTelemetry()">Search Historical Readings</button>
+                    <button class="button button-secondary" onclick="loadHistoricalCount()">Show AVL Tree Reading Count</button>
+                </div>
+                <div id="historicalResults" class="network-result">Historical readings will appear here.</div>
+            </div>
+
+        </section>
+
     </div>
 
     <script>
@@ -1118,102 +1276,66 @@
 
         function navigateTo(view) {
 
-            if (view === "topology") {
-                return;
-            }
-
             currentView = view;
 
-            document
-                .querySelectorAll(".view")
-                .forEach(element => {
-                    element.classList.remove("active");
-                });
+            document.querySelectorAll(".view").forEach(element => {
+                element.classList.remove("active");
+            });
 
-            document
-                .querySelectorAll(".nav-button")
-                .forEach(element => {
-                    element.classList.remove("active");
-                });
+            document.querySelectorAll(".nav-button").forEach(element => {
+                element.classList.remove("active");
+            });
 
             if (view === "telemetry") {
-
-                document
-                    .getElementById("telemetryView")
-                    .classList.add("active");
-
-                document
-                    .getElementById("telemetryNav")
-                    .classList.add("active");
-
+                document.getElementById("telemetryView").classList.add("active");
+                document.getElementById("telemetryNav").classList.add("active");
                 loadSensors();
                 loadTelemetry();
-
             } else if (view === "commands") {
-
-                document
-                    .getElementById("commandsView")
-                    .classList.add("active");
-
-                document
-                    .getElementById("commandsNav")
-                    .classList.add("active");
-
+                document.getElementById("commandsView").classList.add("active");
+                document.getElementById("commandsNav").classList.add("active");
                 loadCommandDevices();
                 loadCommandHistory();
                 loadProcessingStatus();
                 updateRecommendations();
+            } else if (view === "topology") {
+                document.getElementById("topologyView").classList.add("active");
+                document.getElementById("topologyNav").classList.add("active");
+                loadNetworkTopology();
             }
 
-            history.pushState(
-                { view: view },
-                "",
-                "#" + view
-            );
+            history.pushState({ view: view }, "", "#" + view);
         }
 
         function navigateWithoutHistory(view) {
 
             currentView = view;
 
-            document
-                .querySelectorAll(".view")
-                .forEach(element => {
-                    element.classList.remove("active");
-                });
+            document.querySelectorAll(".view").forEach(element => {
+                element.classList.remove("active");
+            });
 
-            document
-                .querySelectorAll(".nav-button")
-                .forEach(element => {
-                    element.classList.remove("active");
-                });
+            document.querySelectorAll(".nav-button").forEach(element => {
+                element.classList.remove("active");
+            });
 
             if (view === "commands") {
-
-                document
-                    .getElementById("commandsView")
-                    .classList.add("active");
-
-                document
-                    .getElementById("commandsNav")
-                    .classList.add("active");
-
+                document.getElementById("commandsView").classList.add("active");
+                document.getElementById("commandsNav").classList.add("active");
                 loadCommandDevices();
                 loadCommandHistory();
                 loadProcessingStatus();
                 updateRecommendations();
-
+            } else if (view === "topology") {
+                document.getElementById("topologyView").classList.add("active");
+                document.getElementById("topologyNav").classList.add("active");
+                loadNetworkTopology();
             } else {
-
-                document
-                    .getElementById("telemetryView")
-                    .classList.add("active");
-
-                document
-                    .getElementById("telemetryNav")
-                    .classList.add("active");
-
                 currentView = "telemetry";
+                document.getElementById("telemetryView").classList.add("active");
+                document.getElementById("telemetryNav").classList.add("active");
+                loadSensors();
+                loadTelemetry();
             }
         }
 
@@ -1293,13 +1415,13 @@
             if (!sensors || sensors.length === 0) {
 
                 body.innerHTML = `
-                            <tr>
-                                <td colspan="5"
-                                    class="empty-state">
-                                    No sensors registered.
-                                </td>
-                            </tr>
-                        `;
+                                <tr>
+                                    <td colspan="5"
+                                        class="empty-state">
+                                        No sensors registered.
+                                    </td>
+                                </tr>
+                            `;
 
                 return;
             }
@@ -1325,38 +1447,38 @@
                             : "Never";
 
                     return `
-                                <tr>
+                                    <tr>
 
-                                    <td>
-                                        ${escapeHtml(
+                                        <td>
+                                            ${escapeHtml(
                         sensor.sensorId || ""
                     )}
-                                    </td>
+                                        </td>
 
-                                    <td>
-                                        ${escapeHtml(
+                                        <td>
+                                            ${escapeHtml(
                         sensor.location || ""
                     )}
-                                    </td>
+                                        </td>
 
-                                    <td>
-                                        ${escapeHtml(
+                                        <td>
+                                            ${escapeHtml(
                         sensor.category || ""
                     )}
-                                    </td>
+                                        </td>
 
-                                    <td>
-                                        <span class="status ${statusClass}">
-                                            ${statusText}
-                                        </span>
-                                    </td>
+                                        <td>
+                                            <span class="status ${statusClass}">
+                                                ${statusText}
+                                            </span>
+                                        </td>
 
-                                    <td>
-                                        ${lastSeen}
-                                    </td>
+                                        <td>
+                                            ${lastSeen}
+                                        </td>
 
-                                </tr>
-                            `;
+                                    </tr>
+                                `;
 
                 }).join("");
         }
@@ -1527,10 +1649,10 @@
             if (alerts.length === 0) {
 
                 container.innerHTML = `
-                            <div class="empty-state">
-                                No alerts detected.
-                            </div>
-                        `;
+                                <div class="empty-state">
+                                    No alerts detected.
+                                </div>
+                            `;
 
                 return;
             }
@@ -1540,23 +1662,23 @@
                     .slice(-10)
                     .reverse()
                     .map(item => `
-                                <div class="alert danger">
+                                    <div class="alert danger">
 
-                                    <strong>
-                                        ${escapeHtml(
+                                        <strong>
+                                            ${escapeHtml(
                         item.sensorId || "Unknown Sensor"
                     )}
-                                    </strong>
+                                        </strong>
 
-                                    <br>
+                                        <br>
 
-                                    Value:
-                                    ${escapeHtml(
+                                        Value:
+                                        ${escapeHtml(
                         String(item.value)
                     )}
 
-                                </div>
-                            `)
+                                    </div>
+                                `)
                     .join("");
         }
 
@@ -1935,10 +2057,10 @@
                 document.getElementById(
                     "commandDevicesGrid"
                 ).innerHTML = `
-                            <div class="empty-state">
-                                Unable to load devices.
-                            </div>
-                        `;
+                                <div class="empty-state">
+                                    Unable to load devices.
+                                </div>
+                            `;
             }
         }
 
@@ -1961,10 +2083,10 @@
                 ];
 
             select.innerHTML = `
-                        <option value="all">
-                            All Categories
-                        </option>
-                    `;
+                            <option value="all">
+                                All Categories
+                            </option>
+                        `;
 
             categories.forEach(category => {
 
@@ -2090,10 +2212,10 @@
             if (!devices || devices.length === 0) {
 
                 container.innerHTML = `
-                    <div class="empty-state">
-                        No devices match the selected filters.
-                    </div>
-                `;
+                        <div class="empty-state">
+                            No devices match the selected filters.
+                        </div>
+                    `;
 
                 return;
             }
@@ -2120,86 +2242,86 @@
                             : "offline";
 
                     return `
-                        <div class="device-card">
+                            <div class="device-card">
 
-                            <div class="device-header">
+                                <div class="device-header">
 
-                                <div class="device-name">
-                                    ${escapeHtml(
+                                    <div class="device-name">
+                                        ${escapeHtml(
                         device.sensorId
                     )}
+                                    </div>
+
+                                    <span class="status ${statusClass}">
+                                        ${status}
+                                    </span>
+
                                 </div>
 
-                                <span class="status ${statusClass}">
-                                    ${status}
-                                </span>
+                                <div class="device-details">
 
-                            </div>
-
-                            <div class="device-details">
-
-                                <strong>Location:</strong>
-                                ${escapeHtml(
+                                    <strong>Location:</strong>
+                                    ${escapeHtml(
                         device.location || "Unknown"
                     )}
 
-                                <br>
+                                    <br>
 
-                                <strong>Category:</strong>
-                                ${escapeHtml(
+                                    <strong>Category:</strong>
+                                    ${escapeHtml(
                         device.category || "Unknown"
                     )}
 
-                                <br>
+                                    <br>
 
-                                <strong>Device State:</strong>
+                                    <strong>Device State:</strong>
 
-                                <span class="status ${stateClass}">
-                                    ${escapeHtml(deviceState)}
-                                </span>
+                                    <span class="status ${stateClass}">
+                                        ${escapeHtml(deviceState)}
+                                    </span>
 
-                                <br>
+                                    <br>
 
-                                <strong>Last Seen:</strong>
-                                ${device.lastSeen
+                                    <strong>Last Seen:</strong>
+                                    ${device.lastSeen
                             ? new Date(
                                 device.lastSeen
                             ).toLocaleString()
                             : "Never"
                         }
 
-                            </div>
+                                </div>
 
-                            <div class="command-actions">
+                                <div class="command-actions">
 
-                                <button
-                                    class="button button-primary"
-                                    onclick="issueCommand(
-                                        '${escapeJs(device.sensorId)}',
-                                        'ACTIVATE'
-                                    )"
-                                    ${deviceState === "ON"
+                                    <button
+                                        class="button button-primary"
+                                        onclick="issueCommand(
+                                            '${escapeJs(device.sensorId)}',
+                                            'ACTIVATE'
+                                        )"
+                                        ${deviceState === "ON"
                             ? "disabled"
                             : ""}>
-                                    ⚡ Activate
-                                </button>
+                                        ⚡ Activate
+                                    </button>
 
-                                <button
-                                    class="button button-secondary"
-                                    onclick="issueCommand(
-                                        '${escapeJs(device.sensorId)}',
-                                        'DEACTIVATE'
-                                    )"
-                                    ${deviceState === "OFF"
+                                    <button
+                                        class="button button-secondary"
+                                        onclick="issueCommand(
+                                            '${escapeJs(device.sensorId)}',
+                                            'DEACTIVATE'
+                                        )"
+                                        ${deviceState === "OFF"
                             ? "disabled"
                             : ""}>
-                                    ⏹ Deactivate
-                                </button>
+                                        ⏹ Deactivate
+                                    </button>
+
+                                </div>
 
                             </div>
-
-                        </div>
-                    `;
+                        `;
 
                 }).join("");
         }
@@ -2352,10 +2474,10 @@
             if (!history || history.length === 0) {
 
                 container.innerHTML = `
-                            <div class="empty-state">
-                                No commands executed yet.
-                            </div>
-                        `;
+                                <div class="empty-state">
+                                    No commands executed yet.
+                                </div>
+                            `;
 
                 return;
             }
@@ -2371,52 +2493,52 @@
                             : "Unknown";
 
                     return `
-                                <div class="command-history-item">
+                                    <div class="command-history-item">
 
-                                    <div class="command-history-header">
+                                        <div class="command-history-header">
 
-                                        <span class="command-name">
-                                            ${escapeHtml(
+                                            <span class="command-name">
+                                                ${escapeHtml(
                         command.command
                     )}
-                                        </span>
+                                            </span>
 
-                                        <span class="command-time">
-                                            ${timestamp}
-                                        </span>
+                                            <span class="command-time">
+                                                ${timestamp}
+                                            </span>
 
-                                    </div>
+                                        </div>
 
-                                    <div class="command-details">
+                                        <div class="command-details">
 
-                                        Device:
-                                        <strong>
-                                            ${escapeHtml(
+                                            Device:
+                                            <strong>
+                                                ${escapeHtml(
                         command.sensorId
                     )}
-                                        </strong>
+                                            </strong>
 
-                                        &nbsp; | &nbsp;
+                                            &nbsp; | &nbsp;
 
-                                        State:
-                                        ${escapeHtml(
+                                            State:
+                                            ${escapeHtml(
                         command.previousState
                     )}
-                                        →
-                                        ${escapeHtml(
+                                            →
+                                            ${escapeHtml(
                         command.newState
                     )}
 
-                                        &nbsp; | &nbsp;
+                                            &nbsp; | &nbsp;
 
-                                        ${escapeHtml(
+                                            ${escapeHtml(
                         command.status
                     )}
 
-                                    </div>
+                                        </div>
 
-                                </div>
-                            `;
+                                    </div>
+                                `;
 
                 }).join("");
         }
@@ -2507,18 +2629,18 @@
                 ) {
 
                     container.innerHTML = `
-                                <div class="recommendation">
+                                    <div class="recommendation">
 
-                                    <strong>
-                                        Monitoring active
-                                    </strong>
+                                        <strong>
+                                            Monitoring active
+                                        </strong>
 
-                                    <span>
-                                        No recommendations are currently available.
-                                    </span>
+                                        <span>
+                                            No recommendations are currently available.
+                                        </span>
 
-                                </div>
-                            `;
+                                    </div>
+                                `;
 
                     return;
                 }
@@ -2527,56 +2649,56 @@
                     recommendations
                         .map(item => `
 
-                                    <div class="recommendation">
+                                        <div class="recommendation">
 
-                                        <strong>
-                                            ${escapeHtml(
+                                            <strong>
+                                                ${escapeHtml(
                             item.recommendation ||
                             "Suggested action"
                         )}
-                                        </strong>
+                                            </strong>
 
-                                        <span>
-                                            <strong>Reason:</strong>
-                                            ${escapeHtml(
+                                            <span>
+                                                <strong>Reason:</strong>
+                                                ${escapeHtml(
                             item.reason ||
                             "Activity pattern detected."
                         )}
-                                        </span>
+                                            </span>
 
-                                        <br>
+                                            <br>
 
-                                        <span>
-                                            <strong>Device:</strong>
-                                            ${escapeHtml(
+                                            <span>
+                                                <strong>Device:</strong>
+                                                ${escapeHtml(
                             item.sensorId ||
                             "SYSTEM"
                         )}
-                                        </span>
+                                            </span>
 
-                                        <br>
+                                            <br>
 
-                                        <span>
-                                            <strong>Category:</strong>
-                                            ${escapeHtml(
+                                            <span>
+                                                <strong>Category:</strong>
+                                                ${escapeHtml(
                             item.category ||
                             "General"
                         )}
-                                        </span>
+                                            </span>
 
-                                        <br>
+                                            <br>
 
-                                        <span>
-                                            <strong>Priority:</strong>
-                                            ${escapeHtml(
+                                            <span>
+                                                <strong>Priority:</strong>
+                                                ${escapeHtml(
                             item.priority ||
                             "Normal"
                         )}
-                                        </span>
+                                            </span>
 
-                                    </div>
+                                        </div>
 
-                                `)
+                                    `)
                         .join("");
 
             } catch (error) {
@@ -2587,18 +2709,280 @@
                 );
 
                 container.innerHTML = `
-                            <div class="recommendation">
+                                <div class="recommendation">
 
-                                <strong>
-                                    Monitoring active
-                                </strong>
+                                    <strong>
+                                        Monitoring active
+                                    </strong>
 
-                                <span>
-                                    Recommendation engine is currently unavailable.
-                                </span>
+                                    <span>
+                                        Recommendation engine is currently unavailable.
+                                    </span>
 
-                            </div>
-                        `;
+                                </div>
+                            `;
+            }
+        }
+
+        // ================================================================
+        // PART 3 - NETWORK TOPOLOGY AND MESH ROUTING
+        // ================================================================
+
+        let networkNodes = [];
+        let networkConnections = [];
+
+        async function loadNetworkTopology() {
+            try {
+                const response = await fetch(`${API_URL}/NetworkTopology`);
+                if (!response.ok) throw new Error(await response.text());
+
+                const network = await response.json();
+                networkNodes = network.nodes || [];
+                networkConnections = network.connections || [];
+
+                renderNetworkTopology();
+                populateNetworkSelectors();
+            } catch (error) {
+                console.error("Network topology loading error:", error);
+                document.getElementById("networkNodesTable").innerHTML =
+                    `<tr><td colspan="5" class="empty-state">Unable to load network. Check that the API is running.</td></tr>`;
+                document.getElementById("networkAlgorithmResults").textContent =
+                    `Network API error: ${error.message}`;
+            }
+        }
+
+        function renderNetworkTopology() {
+            const online = networkNodes.filter(node => node.isOnline).length;
+            document.getElementById("networkNodeCount").textContent = networkNodes.length;
+            document.getElementById("networkEdgeCount").textContent = networkConnections.length;
+            document.getElementById("networkOnlineCount").textContent = online;
+            document.getElementById("networkOfflineCount").textContent = networkNodes.length - online;
+
+            const nodeBody = document.getElementById("networkNodesTable");
+            nodeBody.innerHTML = networkNodes.length
+                ? networkNodes.map(node => `
+                        <tr>
+                            <td>${escapeHtml(node.sensorId)}</td>
+                            <td>${escapeHtml(node.macAddress || "Not provided")}</td>
+                            <td>${escapeHtml(node.location || "Unknown")}</td>
+                            <td>${escapeHtml(node.deviceType || "ESP32")}</td>
+                            <td><span class="status ${node.isOnline ? "online" : "offline"}">${node.isOnline ? "ONLINE" : "OFFLINE"}</span></td>
+                        </tr>`).join("")
+                : `<tr><td colspan="5" class="empty-state">No network nodes registered yet.</td></tr>`;
+
+            const edgeBody = document.getElementById("networkConnectionsTable");
+            edgeBody.innerHTML = networkConnections.length
+                ? networkConnections.map(edge => `
+                        <tr>
+                            <td>${escapeHtml(edge.sourceSensorId)}</td>
+                            <td>${escapeHtml(edge.destinationSensorId)}</td>
+                            <td>${Number(edge.energyCost).toFixed(2)}</td>
+                            <td><span class="status ${edge.isActive ? "online" : "offline"}">${edge.isActive ? "ACTIVE" : "INACTIVE"}</span></td>
+                        </tr>`).join("")
+                : `<tr><td colspan="4" class="empty-state">No wireless connections registered.</td></tr>`;
+        }
+
+        function populateNetworkSelectors() {
+            const selectors = [
+                "connectionSource",
+                "connectionDestination",
+                "algorithmStartNode",
+                "historicalSensorId"
+            ];
+
+            selectors.forEach(id => {
+                const select = document.getElementById(id);
+                const previousValue = select.value;
+                const isHistorical = id === "historicalSensorId";
+                select.innerHTML = isHistorical
+                    ? `<option value="">All Sensors</option>`
+                    : `<option value="">Select ${id === "algorithmStartNode" ? "starting" : id === "connectionSource" ? "source" : "destination"} node</option>`;
+
+                networkNodes.forEach(node => {
+                    const option = document.createElement("option");
+                    option.value = node.sensorId;
+                    option.textContent = `${node.sensorId}${node.macAddress ? " — " + node.macAddress : ""}`;
+                    select.appendChild(option);
+                });
+
+                if ([...select.options].some(option => option.value === previousValue)) {
+                    select.value = previousValue;
+                }
+            });
+        }
+
+        async function registerNetworkNode() {
+            const node = {
+                sensorId: document.getElementById("networkSensorId").value.trim(),
+                macAddress: document.getElementById("networkMacAddress").value.trim(),
+                location: document.getElementById("networkLocation").value.trim(),
+                deviceType: document.getElementById("networkDeviceType").value,
+                isOnline: true
+            };
+
+            if (!node.sensorId || !node.macAddress || !node.location) {
+                alert("Please enter the sensor ID, MAC address and location.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/NetworkTopology/nodes`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(node)
+                });
+
+                if (!response.ok) throw new Error(await response.text());
+
+                document.getElementById("networkSensorId").value = "";
+                document.getElementById("networkMacAddress").value = "";
+                document.getElementById("networkLocation").value = "";
+                await loadNetworkTopology();
+                alert("Network node registered successfully.");
+            } catch (error) {
+                alert(`Node registration failed: ${error.message}`);
+            }
+        }
+
+        async function createNetworkConnection() {
+            const edge = {
+                sourceSensorId: document.getElementById("connectionSource").value,
+                destinationSensorId: document.getElementById("connectionDestination").value,
+                energyCost: Number(document.getElementById("connectionEnergy").value),
+                isActive: true
+            };
+
+            if (!edge.sourceSensorId || !edge.destinationSensorId ||
+                document.getElementById("connectionEnergy").value === "" ||
+                !Number.isFinite(edge.energyCost) || edge.energyCost < 0) {
+                alert("Select two nodes and enter a valid non-negative energy cost.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/NetworkTopology/connections`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(edge)
+                });
+
+                if (!response.ok) throw new Error(await response.text());
+
+                document.getElementById("connectionEnergy").value = "";
+                await loadNetworkTopology();
+                alert("Wireless connection created successfully.");
+            } catch (error) {
+                alert(`Connection creation failed: ${error.message}`);
+            }
+        }
+
+        async function runNetworkAlgorithm(algorithm) {
+            const sensorId = document.getElementById("algorithmStartNode").value;
+            if (!sensorId) {
+                alert("Please select a starting network node.");
+                return;
+            }
+
+            const resultBox = document.getElementById("networkAlgorithmResults");
+            resultBox.textContent = "Running algorithm...";
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/NetworkTopology/${algorithm}/${encodeURIComponent(sensorId)}`
+                );
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || "Algorithm request failed.");
+
+                if (algorithm === "mst") {
+                    resultBox.innerHTML = `
+                            <strong>${escapeHtml(result.algorithm)}</strong><br>
+                            Starting node: ${escapeHtml(result.startingNode)}<br>
+                            Selected connections: ${result.connectionCount}<br>
+                            Total energy cost: ${Number(result.totalEnergyCost).toFixed(2)}
+                            <pre>${escapeHtml(JSON.stringify(result.connections, null, 2))}</pre>`;
+                } else if (algorithm === "disconnected") {
+                    resultBox.innerHTML = `
+                            <strong>Disconnected device analysis</strong><br>
+                            Gateway: ${escapeHtml(result.gateway)}<br>
+                            Disconnected/offline devices: ${result.disconnectedCount}
+                            <pre>${escapeHtml(JSON.stringify(result.disconnectedNodes, null, 2))}</pre>`;
+                } else {
+                    resultBox.innerHTML = `
+                            <strong>${escapeHtml(result.algorithm)}</strong><br>
+                            Starting node: ${escapeHtml(result.startingNode)}<br>
+                            Visited nodes: ${result.visitedNodes}
+                            <pre>${escapeHtml(JSON.stringify(result.traversal, null, 2))}</pre>`;
+                }
+            } catch (error) {
+                resultBox.textContent = `Algorithm failed: ${error.message}`;
+            }
+        }
+
+        async function searchHistoricalTelemetry() {
+            const start = document.getElementById("historicalStartTime").value;
+            const end = document.getElementById("historicalEndTime").value;
+            const sensorId = document.getElementById("historicalSensorId").value;
+            const resultBox = document.getElementById("historicalResults");
+
+            if (!start || !end) {
+                alert("Please select both a start time and an end time.");
+                return;
+            }
+
+            const query = new URLSearchParams({
+                startTime: new Date(start).toISOString(),
+                endTime: new Date(end).toISOString()
+            });
+            if (sensorId) query.set("sensorId", sensorId);
+
+            resultBox.textContent = "Searching historical telemetry...";
+
+            try {
+                const response = await fetch(`${API_URL}/SearchHistory?${query}`);
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || "Historical search failed.");
+
+                const readings = result.readings || [];
+                resultBox.innerHTML = `
+                        <strong>Historical search completed</strong><br>
+                        Sensor: ${escapeHtml(result.sensorId || "All sensors")}<br>
+                        Matching readings: ${result.totalReadings}
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>Sensor</th><th>Location</th><th>Value</th><th>Timestamp</th></tr></thead>
+                                <tbody>
+                                    ${readings.length ? readings.map(item => `
+                                        <tr>
+                                            <td>${escapeHtml(item.sensorId)}</td>
+                                            <td>${escapeHtml(item.location || "")}</td>
+                                            <td>${escapeHtml(item.value)}</td>
+                                            <td>${escapeHtml(new Date(item.timestamp).toLocaleString())}</td>
+                                        </tr>`).join("") : `<tr><td colspan="4">No readings found for this range.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>`;
+            } catch (error) {
+                resultBox.textContent = `Historical search failed: ${error.message}`;
+            }
+        }
+
+        async function loadHistoricalCount() {
+            const resultBox = document.getElementById("historicalResults");
+
+            try {
+                const response = await fetch(`${API_URL}/HistoricalData/count`);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || "Unable to retrieve AVL count.");
+                }
+
+                resultBox.textContent =
+                    `AVL Tree currently contains ${result.totalReadings} historical telemetry readings.`;
+
+            } catch (error) {
+                resultBox.textContent =
+                    `Unable to retrieve AVL Tree count: ${error.message}`;
             }
         }
 
@@ -2645,47 +3029,52 @@
                 await loadCommandHistory();
                 await loadProcessingStatus();
                 await updateRecommendations();
+
+            } else if (currentView === "topology") {
+
+                await loadNetworkTopology();
             }
+        }
 
-            // ================================================================
-            // STARTUP
-            // ================================================================
+        // ================================================================
+        // STARTUP
+        // ================================================================
 
-            window.addEventListener(
-                "DOMContentLoaded",
-                async function () {
+        window.addEventListener(
+            "DOMContentLoaded",
+            async function () {
 
-                    const initialView =
-                        window.location.hash
-                            .replace("#", "");
+                const initialView =
+                    window.location.hash
+                        .replace("#", "");
 
-                    if (
-                        initialView === "commands"
-                    ) {
+                if (initialView === "commands") {
 
-                        navigateWithoutHistory(
-                            "commands"
-                        );
+                    navigateWithoutHistory("commands");
 
-                    } else {
+                } else if (initialView === "topology") {
 
-                        navigateWithoutHistory(
-                            "telemetry"
-                        );
-                    }
+                    navigateWithoutHistory("topology");
 
-                    await refreshDashboard();
+                } else {
+
+                    navigateWithoutHistory(
+                        "telemetry"
+                    );
                 }
-            );
 
-            // ================================================================
-            // AUTOMATIC REFRESH
-            // ================================================================
+                await refreshDashboard();
+            }
+        );
 
-            setInterval(
-                refreshDashboard,
-                5000
-            );
+        // ================================================================
+        // AUTOMATIC REFRESH
+        // ================================================================
+
+        setInterval(
+            refreshDashboard,
+            5000
+        );
 
     </script>
 

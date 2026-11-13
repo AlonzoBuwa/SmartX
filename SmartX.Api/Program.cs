@@ -22,6 +22,10 @@ builder.Services.AddSingleton<SmartX.Api.Services.RealTimeProcessingService>();
 builder.Services.AddSingleton<SmartX.Api.Services.CommandHistoryService>();
 builder.Services.AddSingleton<SmartX.Api.Services.RecommendationService>();
 builder.Services.AddSingleton<SmartX.Api.Services.SearchHistoryService>();
+builder.Services.AddSingleton<SmartX.Api.Services.NetworkGraph>();
+builder.Services.AddSingleton<SmartX.Api.Services.GraphTraversalService>();
+builder.Services.AddSingleton<SmartX.Api.Services.MinimumSpanningTreeService>();
+builder.Services.AddSingleton<SmartX.Api.Services.AVLTree>();
 // ============================================================
 // CORS
 // ============================================================

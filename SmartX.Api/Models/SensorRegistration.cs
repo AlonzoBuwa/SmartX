@@ -4,6 +4,8 @@
     {
         public string SensorId { get; set; } = string.Empty;
 
+        public string MacAddress { get; set; } = string.Empty;
+
         public string Location { get; set; } = string.Empty;
 
         public string Category { get; set; } = string.Empty;
@@ -16,12 +18,7 @@
 
         public List<string> Attachments { get; set; } = new();
 
-        // ============================================================
-        // PART 2 - DEVICE COMMAND STATE
-        // ============================================================
-
-        // Represents the current operational state of the device.
-        // Commands such as ACTIVATE and DEACTIVATE update this value.
+        // Part 2 - Device Command State
         public string DeviceState { get; set; } = "OFF";
     }
 }

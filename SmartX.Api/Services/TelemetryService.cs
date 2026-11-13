@@ -15,24 +15,25 @@ namespace SmartX.Api.Services
         // PART 2 ADVANCED COLLECTIONS
         // ============================================================
 
-        // Queue<T>
         private readonly Queue<object> _telemetryQueue = new();
 
-        // PriorityQueue<TElement, TPriority>
         private readonly PriorityQueue<object, int> _criticalAlertQueue = new();
 
-        // Dictionary<TKey, TValue>
         private readonly Dictionary<string, SensorRegistration>
             _sensorDictionary =
                 new(StringComparer.OrdinalIgnoreCase);
 
-        // SortedDictionary<TKey, TValue>
         private readonly SortedDictionary<DateTime, List<object>>
             _telemetryHistory = new();
 
-        // HashSet<T>
         private readonly HashSet<string> _activeErrorStates =
             new(StringComparer.OrdinalIgnoreCase);
+
+        // ============================================================
+        // PART 3 HISTORICAL DATA STRUCTURE
+        // ============================================================
+
+        private readonly AVLTree _historicalTree;
 
         // ============================================================
         // REAL-TIME PROCESSING
@@ -50,10 +51,13 @@ namespace SmartX.Api.Services
         // ============================================================
 
         public TelemetryService(
-            RealTimeProcessingService realTimeProcessingService)
+            RealTimeProcessingService realTimeProcessingService,
+            AVLTree historicalTree)
         {
             _realTimeProcessingService =
                 realTimeProcessingService;
+
+            _historicalTree = historicalTree;
         }
 
         // ============================================================
@@ -63,6 +67,9 @@ namespace SmartX.Api.Services
         public void AddTelemetry<T>(
             TelemetryPacket<T> packet)
         {
+            if (packet == null)
+                throw new ArgumentNullException(nameof(packet));
+
             // Preserve existing Part 1 behaviour.
             _telemetry.Add(packet);
 
@@ -83,27 +90,23 @@ namespace SmartX.Api.Services
                 registeredSensor.IsOnline = true;
                 registeredSensor.LastSeen = DateTime.UtcNow;
 
-                _activeErrorStates.Remove(
-                    packet.SensorId);
+                _activeErrorStates.Remove(packet.SensorId);
             }
             else
             {
-                var sensor =
-                    _sensors.FirstOrDefault(
-                        s => s.SensorId.Equals(
-                            packet.SensorId,
-                            StringComparison.OrdinalIgnoreCase));
+                var sensor = _sensors.FirstOrDefault(
+                    s => s.SensorId.Equals(
+                        packet.SensorId,
+                        StringComparison.OrdinalIgnoreCase));
 
                 if (sensor != null)
                 {
                     sensor.IsOnline = true;
                     sensor.LastSeen = DateTime.UtcNow;
 
-                    _sensorDictionary[
-                        packet.SensorId] = sensor;
+                    _sensorDictionary[packet.SensorId] = sensor;
 
-                    _activeErrorStates.Remove(
-                        packet.SensorId);
+                    _activeErrorStates.Remove(packet.SensorId);
                 }
             }
 
@@ -117,11 +120,22 @@ namespace SmartX.Api.Services
             {
                 history = new List<object>();
 
-                _telemetryHistory[
-                    packet.Timestamp] = history;
+                _telemetryHistory[packet.Timestamp] = history;
             }
 
             history.Add(packet);
+
+            // --------------------------------------------------------
+            // AVL TREE
+            // --------------------------------------------------------
+
+            // Automatically insert double telemetry readings into
+            // the AVL Tree for efficient historical range queries.
+
+            if (packet is TelemetryPacket<double> doublePacket)
+            {
+                _historicalTree.Insert(doublePacket);
+            }
 
             // --------------------------------------------------------
             // PRIORITYQUEUE
@@ -129,21 +143,17 @@ namespace SmartX.Api.Services
 
             if (IsCriticalTelemetry(packet.Value))
             {
-                _criticalAlertQueue.Enqueue(
-                    packet,
-                    1);
+                _criticalAlertQueue.Enqueue(packet, 1);
             }
 
             // --------------------------------------------------------
             // REAL-TIME PROCESSING SERVICE
             // --------------------------------------------------------
 
-            // The processor receives the strongly typed packet and
-            // places it into the appropriate processing collection.
-            if (packet is TelemetryPacket<double> doublePacket)
+            if (packet is TelemetryPacket<double> telemetryPacket)
             {
                 _realTimeProcessingService.EnqueueTelemetry(
-                    doublePacket);
+                    telemetryPacket);
             }
         }
 
@@ -202,6 +212,26 @@ namespace SmartX.Api.Services
         }
 
         // ============================================================
+        // AVL TREE HISTORICAL DATA ACCESS
+        // ============================================================
+
+        public List<TelemetryPacket<double>> GetHistoricalReadings(
+            DateTime startTime,
+            DateTime endTime,
+            string? sensorId = null)
+        {
+            return _historicalTree.SearchRange(
+                startTime,
+                endTime,
+                sensorId);
+        }
+
+        public int GetHistoricalReadingCount()
+        {
+            return _historicalTree.Count();
+        }
+
+        // ============================================================
         // ACTIVE ERROR STATES
         // ============================================================
 
@@ -219,39 +249,30 @@ namespace SmartX.Api.Services
         public void RegisterSensor(
             SensorRegistration sensor)
         {
-            var existing =
-                _sensors.FirstOrDefault(
-                    s => s.SensorId.Equals(
-                        sensor.SensorId,
-                        StringComparison.OrdinalIgnoreCase));
+            var existing = _sensors.FirstOrDefault(
+                s => s.SensorId.Equals(
+                    sensor.SensorId,
+                    StringComparison.OrdinalIgnoreCase));
 
             if (existing == null)
             {
-                sensor.LastSeen =
-                    DateTime.UtcNow;
-
+                sensor.LastSeen = DateTime.UtcNow;
                 sensor.IsOnline = true;
 
                 _sensors.Add(sensor);
 
-                _sensorDictionary[
-                    sensor.SensorId] = sensor;
+                _sensorDictionary[sensor.SensorId] = sensor;
             }
             else
             {
-                existing.Location =
-                    sensor.Location;
-
-                existing.Category =
-                    sensor.Category;
+                existing.Location = sensor.Location;
+                existing.Category = sensor.Category;
+                existing.MacAddress = sensor.MacAddress;
 
                 existing.IsOnline = true;
+                existing.LastSeen = DateTime.UtcNow;
 
-                existing.LastSeen =
-                    DateTime.UtcNow;
-
-                _sensorDictionary[
-                    existing.SensorId] = existing;
+                _sensorDictionary[existing.SensorId] = existing;
             }
         }
 
@@ -266,8 +287,7 @@ namespace SmartX.Api.Services
         // FAST DICTIONARY LOOKUP
         // ============================================================
 
-        public SensorRegistration? GetSensor(
-            string sensorId)
+        public SensorRegistration? GetSensor(string sensorId)
         {
             UpdateSensorStatuses();
 
@@ -288,22 +308,18 @@ namespace SmartX.Api.Services
         // SENSOR REMOVAL
         // ============================================================
 
-        public bool RemoveSensor(
-            string sensorId)
+        public bool RemoveSensor(string sensorId)
         {
-            var sensor =
-                GetSensor(sensorId);
+            var sensor = GetSensor(sensorId);
 
             if (sensor == null)
                 return false;
 
             _sensors.Remove(sensor);
 
-            _sensorDictionary.Remove(
-                sensorId);
+            _sensorDictionary.Remove(sensorId);
 
-            _activeErrorStates.Remove(
-                sensorId);
+            _activeErrorStates.Remove(sensorId);
 
             return true;
         }
@@ -317,22 +333,18 @@ namespace SmartX.Api.Services
             foreach (var sensor in _sensors)
             {
                 var secondsSinceLastSeen =
-                    (DateTime.UtcNow -
-                     sensor.LastSeen).TotalSeconds;
+                    (DateTime.UtcNow - sensor.LastSeen).TotalSeconds;
 
                 sensor.IsOnline =
-                    secondsSinceLastSeen <=
-                    OfflineThresholdSeconds;
+                    secondsSinceLastSeen <= OfflineThresholdSeconds;
 
                 if (!sensor.IsOnline)
                 {
-                    _activeErrorStates.Add(
-                        sensor.SensorId);
+                    _activeErrorStates.Add(sensor.SensorId);
                 }
                 else
                 {
-                    _activeErrorStates.Remove(
-                        sensor.SensorId);
+                    _activeErrorStates.Remove(sensor.SensorId);
                 }
             }
         }
@@ -341,8 +353,7 @@ namespace SmartX.Api.Services
         // CRITICAL TELEMETRY DETECTION
         // ============================================================
 
-        private bool IsCriticalTelemetry<T>(
-            T value)
+        private bool IsCriticalTelemetry<T>(T value)
         {
             try
             {
